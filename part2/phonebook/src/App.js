@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import Filter from './components/Filter'
 import Display from './components/Display'
 import Form from './components/Form'
+import phoneServices from "./services/persons";
+import axios from 'axios';
 
 const App = () => {
   const [persons, setPersons] = useState([]) 
@@ -14,18 +15,11 @@ const App = () => {
   const [searchName, setSearchName] = useState('')
   
   useEffect(() => { 
-    axios.get('http://localhost:3001/persons').then(response => 
-    setPersons(response.data)
+    phoneServices.getNumbers().then(response => 
+    setPersons(response)
     )
   }, [])
-
-  const isNamePresent = () => persons.some(person => person.name === newName)
-
-  const filterNames = () => {
-    const re = RegExp(`.*${searchName.toLowerCase().split('').join('.*')}.*`)
-    return persons.filter(person => person.name.toLowerCase().match(re))
-  }
-
+  
   const addNewPerson = (event) => {
     event.preventDefault()
     if (isNamePresent()) {
@@ -37,10 +31,27 @@ const App = () => {
         name: newName,
         number: newNumber
       }
-      setPersons(persons.concat(personObj))
-      setNewNumber('')
-      setNewName('')
-   }
+  
+      phoneServices.addNumber(personObj).then(response => {
+        setPersons(persons.concat(response))
+        setNewNumber('')
+        setNewName('')  
+      })
+    }
+  }
+
+  const deletePerson = (id) => {
+    const newArr = persons.filter(person => person.id !== id)
+    setPersons(newArr)
+
+    axios.delete(`http://localhost:3001/persons/${id}`)    
+  }
+
+  const isNamePresent = () => persons.some(person => person.name === newName)
+
+  const filterNames = () => {
+    const re = RegExp(`.*${searchName.toLowerCase().split('').join('.*')}.*`)
+    return persons.filter(person => person.name.toLowerCase().match(re))
   }
 
   const newNameHandler = (event) => {
@@ -76,7 +87,7 @@ const App = () => {
       <div>
         <h2>Numbers</h2>
         <ul style={{padding: 0}}>
-          <Display props={filterNames()}/>
+          <Display props={filterNames()} deletePerson={deletePerson}/>
         </ul>
       </div>
     </div>
