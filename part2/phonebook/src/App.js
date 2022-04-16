@@ -4,11 +4,60 @@ import Display from './components/Display'
 import Form from './components/Form'
 import phoneServices from "./services/persons";
 
+const Notification = ({ message, status }) => {
+  const addedStyle = {
+    color: 'green',
+    background: 'lightgrey',
+    fontSize: 20,
+    borderStyle: 'solid',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10
+  }
+
+  const deletedStyle = {
+    color: 'red',
+    background: 'lightgrey',
+    fontSize: 20,
+    borderStyle: 'solid',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10
+  }
+
+  if (status === 'added') {
+    return (
+      <div className='added' style={addedStyle}>
+        {message}
+      </div>
+    )
+  } else if (status === 'updated') {
+      return (
+        <div className='updated' style={addedStyle}>
+          {message}
+        </div>
+      )
+  } else if (status === 'deleted') {
+  return (
+    <div className='deleted' style={deletedStyle}>
+      {message}
+    </div>
+  )} else if (status === 'error') {
+    return (
+      <div className='error' style={deletedStyle}>
+        {message}
+      </div>
+  )} else if (status === '') {
+    return null
+  }
+}
+
 const App = () => {
   const [persons, setPersons] = useState([])   
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [searchName, setSearchName] = useState('')
+  const [message, setMessage] = useState({message: null, status:''})
   
   useEffect(() => { 
     phoneServices.getNumbers().then(response => 
@@ -25,6 +74,17 @@ const App = () => {
 
         phoneServices.updateNumber(number.id, changedNumber).then(response => {
           setPersons(persons.map(r => number.id !== r.id ? r : response))})
+          .then(() => {
+            setMessage({message: `${newName}'s number was updated`, status:'updated'})
+            setTimeout(() => {
+              setMessage({message: null, status:''})              
+            }, 5000)
+          }).catch(() => {
+            setMessage({message: `Information of ${newName} has already been removed from server.`, status:'error'})
+            setTimeout(() => {
+              setMessage({message: null, status:''})              
+            }, 5000)
+          })
           setNewNumber('')
           setNewName('')   
       } else {
@@ -38,9 +98,15 @@ const App = () => {
       }
   
       phoneServices.addNumber(personObj).then(response => {
-        setPersons(persons.concat(response))
+        setPersons(persons.concat(response))          
         setNewNumber('')
         setNewName('')  
+      })
+      .then(() => {
+        setMessage({message: `Added ${newName}`, status:'added'})
+        setTimeout(() => {
+          setMessage({message: null, status:''})              
+        }, 5000)
       })
     }
   }
@@ -49,15 +115,24 @@ const App = () => {
     if (window.confirm(`Delete ${prop.name}?`)) {
         const newArr = persons.filter(person => person.id !== prop.id)
         setPersons(newArr)
-        phoneServices.deleteNumber(prop.id)    
+        phoneServices.deleteNumber(prop.id).then(error => {
+          setMessage({
+            message: `${prop.name} was removed.`,
+            status: 'deleted'
+          })
+          setTimeout(() => {
+            setMessage({
+              message: null,
+              status: ''
+            })
+          }, 5000)
+        })  
     }
   }
 
   const isNamePresent = () => persons.some(person => person.name === newName)
 
   const filterNames = () => {
-    console.log(searchName)
-    console.log(persons)
     const re = RegExp(`.*${searchName.toLowerCase().split('').join('.*')}.*`)
     return persons.filter(person => person.name.toLowerCase().match(re))
   }
@@ -82,6 +157,7 @@ const App = () => {
     <div>
       <div>
         <h2>Phonebook</h2>
+        <Notification {...message}/>
         <div>
           <Filter search={searchName} handler={inputHandler}/>
         </div>
