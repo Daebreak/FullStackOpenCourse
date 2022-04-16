@@ -3,15 +3,11 @@ import Filter from './components/Filter'
 import Display from './components/Display'
 import Form from './components/Form'
 import phoneServices from "./services/persons";
-import axios from 'axios';
 
 const App = () => {
-  const [persons, setPersons] = useState([]) 
-  
+  const [persons, setPersons] = useState([])   
   const [newName, setNewName] = useState('')
-
   const [newNumber, setNewNumber] = useState('')
-  
   const [searchName, setSearchName] = useState('')
   
   useEffect(() => { 
@@ -23,9 +19,18 @@ const App = () => {
   const addNewPerson = (event) => {
     event.preventDefault()
     if (isNamePresent()) {
-      window.alert(`${newName} is already added to phonebook`)
-      setNewNumber('')
-      setNewName('') 
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+        const number = persons.find(person => newName === person.name)
+        const changedNumber = {...number, number: newNumber}
+
+        phoneServices.updateNumber(number.id, changedNumber).then(response => {
+          setPersons(persons.map(r => number.id !== r.id ? r : response))})
+          setNewNumber('')
+          setNewName('')   
+      } else {
+        setNewNumber('')
+        setNewName('') 
+      }
     } else {
       const personObj = {
         name: newName,
@@ -40,30 +45,37 @@ const App = () => {
     }
   }
 
-  const deletePerson = (id) => {
-    const newArr = persons.filter(person => person.id !== id)
-    setPersons(newArr)
-
-    axios.delete(`http://localhost:3001/persons/${id}`)    
+  const deletePerson = (prop) => {
+    if (window.confirm(`Delete ${prop.name}?`)) {
+        const newArr = persons.filter(person => person.id !== prop.id)
+        setPersons(newArr)
+        phoneServices.deleteNumber(prop.id)    
+    }
   }
 
   const isNamePresent = () => persons.some(person => person.name === newName)
 
   const filterNames = () => {
+    console.log(searchName)
+    console.log(persons)
     const re = RegExp(`.*${searchName.toLowerCase().split('').join('.*')}.*`)
     return persons.filter(person => person.name.toLowerCase().match(re))
   }
 
-  const newNameHandler = (event) => {
-    setNewName(event.target.value)
-  }
-
-  const newNumberHandler = (event) => {
-    setNewNumber(event.target.value)
-  }
-
-  const searchNameHandler = (event) => {
-    setSearchName(event.target.value)
+  const inputHandler = (event) => {
+    switch (event.target.id) {
+      case 'filter':
+        setSearchName(event.target.value)
+        break;
+      case 'name':
+        setNewName(event.target.value)
+        break;
+      case 'number':
+        setNewNumber(event.target.value)
+        break;
+      default:
+        break;
+    }
   }
 
   return (
@@ -71,14 +83,14 @@ const App = () => {
       <div>
         <h2>Phonebook</h2>
         <div>
-          <Filter search={searchName} handler={searchNameHandler}/>
+          <Filter search={searchName} handler={inputHandler}/>
         </div>
       </div>
       
       <form>
         <h2>Add a new</h2>
-        <Form prop={newName} handler={newNameHandler} label/>
-        <Form prop={newNumber} handler={newNumberHandler}/>
+        <Form prop={newName} handler={inputHandler} label/>
+        <Form prop={newNumber} handler={inputHandler}/>
         <div>
           <button type="submit" onClick={addNewPerson}>add</button>
         </div>
