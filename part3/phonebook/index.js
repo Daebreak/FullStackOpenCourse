@@ -1,17 +1,16 @@
 const express = require('express')
 const app = express()
+var morgan = require('morgan')
 const PORT = 3001
-
-app.use(express.json())
 
 let persons = [
     { 
-      "id": 1,
-      "name": "Arto Hellas", 
+        "id": 1,
+        "name": "Arto Hellas", 
       "number": "040-123456"
     },
     { 
-      "id": 2,
+        "id": 2,
       "name": "Ada Lovelace", 
       "number": "39-44-5323523"
     },
@@ -27,6 +26,18 @@ let persons = [
     }
 ]
 
+const requestLogger = (request, response, next) => {
+    console.log('Method:', request.method)
+    console.log('Path:  ', request.path)
+    console.log('Body:  ', request.body)
+    console.log('---')
+    next()
+}
+
+app.use(express.json())
+app.use(requestLogger)
+app.use(morgan('tiny'))
+
 app.get('/', (request, response) => {
     response.send('Hello')
 })
@@ -41,7 +52,6 @@ app.get('/info', (request, response) => {
 
 app.get('/api/persons/:id', (request, response) => {
     let person = persons.find(p => p.id === Number(request.params.id))
-    console.log(person)
     if (person) {
         response.json(person)
     } else {
@@ -52,7 +62,6 @@ app.get('/api/persons/:id', (request, response) => {
 
 app.delete('/api/persons/:id', (request, response) => {
     let person = persons.filter(p => p.id !== Number(request.params.id))
-    console.log(person)
     if (persons.id === Number(request.params.id)) {
         response.status(404).json('Person was successfully deleted')
     } else {
@@ -67,9 +76,6 @@ app.post('/api/persons', (request, response) => {
 
    const isNumberPresent = () => persons.some(person => person.name === body.name)
 
-    console.log(!body.name || !body.number);
-    console.log(isNumberPresent());
-
     if (!body.name || !body.number) {
         response.statusMessage = 'Name or number missing'
         response.status(400).end()
@@ -83,11 +89,16 @@ app.post('/api/persons', (request, response) => {
        name:body.name,
        number:body.number
    }
-   console.log(personObj);
    persons = persons.concat(personObj)
 
    response.json(personObj)
 })
+
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint' })
+}
+  
+app.use(unknownEndpoint)
 
 app.listen(PORT)
 console.log(`listening on ${PORT}`)
