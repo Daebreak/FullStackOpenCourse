@@ -1,7 +1,8 @@
 const express = require('express')
 const app = express()
-var morgan = require('morgan')
+const morgan = require('morgan')
 const PORT = 3001
+
 
 let persons = [
     { 
@@ -11,13 +12,13 @@ let persons = [
     },
     { 
         "id": 2,
-      "name": "Ada Lovelace", 
+        "name": "Ada Lovelace", 
       "number": "39-44-5323523"
     },
     { 
-      "id": 3,
-      "name": "Dan Abramov", 
-      "number": "12-43-234345"
+        "id": 3,
+        "name": "Dan Abramov", 
+        "number": "12-43-234345"
     },
     { 
         "id": 4,
@@ -34,9 +35,22 @@ const requestLogger = (request, response, next) => {
     next()
 }
 
+morgan.token('data', (request, response) => { return JSON.stringify(request.body) })
 app.use(express.json())
 app.use(requestLogger)
-app.use(morgan('tiny'))
+//app.use(morgan('tiny'))
+
+app.use(morgan(function (tokens, req, res) {
+    return [
+      tokens.method(req, res),
+      tokens.url(req, res),
+      tokens.status(req, res),
+      tokens.res(req, res, 'content-length'), '-',
+      tokens['response-time'](req, res), 'ms',
+      tokens.data(req,res)
+    ].join(' ')
+  })
+)
 
 app.get('/', (request, response) => {
     response.send('Hello')
