@@ -79,8 +79,8 @@ app.get('/api/persons/:id', (request, response) => {
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-    let person = persons.filter(p => p.id !== Number(request.params.id))
-    if (persons.id === Number(request.params.id)) {
+    let [person] = persons.filter(p => p.id === Number(request.params.id))
+    if (person.id === Number(request.params.id)) {
         response.status(404).json('Person was successfully deleted')
     } else {
         response.statusMessage = "Person ID was not found"
